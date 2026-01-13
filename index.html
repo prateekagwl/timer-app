@@ -11,8 +11,9 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
+            padding: 20px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
@@ -110,6 +111,83 @@
             font-size: 18px;
             font-weight: bold;
         }
+
+        .history-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #e9ecef;
+        }
+
+        .history-section h2 {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .history-item:hover {
+            background-color: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        .history-info {
+            flex: 1;
+            text-align: left;
+        }
+
+        .history-title {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 16px;
+        }
+
+        .history-details {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .delete-btn {
+            padding: 5px 10px;
+            font-size: 20px;
+            background-color: transparent;
+            color: #ff6b6b;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            line-height: 1;
+        }
+
+        .delete-btn:hover {
+            background-color: #ff6b6b;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .empty-history {
+            color: #868e96;
+            font-style: italic;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
@@ -128,6 +206,13 @@
             <button class="start" id="startBtn" onclick="startTimer()">Start</button>
             <button class="pause" id="pauseBtn" onclick="pauseTimer()" style="display: none;">Pause</button>
             <button class="reset" onclick="resetTimer()">Reset</button>
+        </div>
+
+        <div class="history-section">
+            <h2>Timer History</h2>
+            <div class="history-list" id="historyList">
+                <div class="empty-history">No timer history yet. Start a timer to create history.</div>
+            </div>
         </div>
     </div>
 
@@ -179,6 +264,8 @@
                     if (checkpointInterval > 0) {
                         nextCheckpoint = timeRemaining - (checkpointInterval * 60);
                     }
+                    // Save to history when starting a new timer
+                    saveToHistory(minutes, checkpointInterval);
                 }
 
                 if (timeRemaining > 0) {
@@ -239,9 +326,107 @@
             document.getElementById('timer').textContent = formattedTime;
         }
 
+        // Timer history management
+        function saveToHistory(minutes, checkpoint) {
+            if (minutes <= 0) return;
+
+            const history = getHistory();
+            const timestamp = new Date().toLocaleString();
+
+            // Create history entry
+            const entry = {
+                id: Date.now(),
+                minutes: minutes,
+                checkpoint: checkpoint,
+                timestamp: timestamp
+            };
+
+            // Check if similar timer already exists (same minutes and checkpoint)
+            const exists = history.some(item =>
+                item.minutes === minutes && item.checkpoint === checkpoint
+            );
+
+            if (!exists) {
+                history.unshift(entry); // Add to beginning
+
+                // Keep only last 10 timers
+                if (history.length > 10) {
+                    history.pop();
+                }
+
+                localStorage.setItem('timerHistory', JSON.stringify(history));
+                displayHistory();
+            }
+        }
+
+        function getHistory() {
+            const history = localStorage.getItem('timerHistory');
+            return history ? JSON.parse(history) : [];
+        }
+
+        function displayHistory() {
+            const historyList = document.getElementById('historyList');
+            const history = getHistory();
+
+            if (history.length === 0) {
+                historyList.innerHTML = '<div class="empty-history">No timer history yet. Start a timer to create history.</div>';
+                return;
+            }
+
+            historyList.innerHTML = history.map(item => {
+                const checkpointText = item.checkpoint > 0
+                    ? `Checkpoint: every ${item.checkpoint} min`
+                    : 'No checkpoints';
+
+                return `
+                    <div class="history-item" onclick="loadFromHistory(${item.id})">
+                        <div class="history-info">
+                            <div class="history-title">${item.minutes} minutes</div>
+                            <div class="history-details">${checkpointText}</div>
+                        </div>
+                        <button class="delete-btn" onclick="deleteHistory(event, ${item.id})">✕</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function loadFromHistory(id) {
+            const history = getHistory();
+            const item = history.find(h => h.id === id);
+
+            if (item) {
+                // Reset any running timer
+                if (isRunning) {
+                    pauseTimer();
+                }
+
+                // Load values
+                document.getElementById('minutes').value = item.minutes;
+                document.getElementById('checkpoint').value = item.checkpoint;
+
+                // Reset state
+                timeRemaining = 0;
+                nextCheckpoint = 0;
+
+                // Update display and start immediately
+                updateDisplay(item.minutes);
+                startTimer();
+            }
+        }
+
+        function deleteHistory(event, id) {
+            event.stopPropagation(); // Prevent triggering loadFromHistory
+
+            let history = getHistory();
+            history = history.filter(item => item.id !== id);
+            localStorage.setItem('timerHistory', JSON.stringify(history));
+            displayHistory();
+        }
+
         window.onload = function() {
             const minutesInput = document.getElementById('minutes');
             updateDisplay(parseInt(minutesInput.value));
+            displayHistory();
         };
     </script>
 </body>
