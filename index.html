@@ -226,10 +226,15 @@
         // Create audio context for sound notifications
         let audioContext = null;
 
-        function playBeep() {
+        async function playBeep() {
             try {
                 if (!audioContext) {
                     audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
+                // Resume audio context if suspended (required for mobile browsers)
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
                 }
 
                 const oscillator = audioContext.createOscillator();
@@ -251,12 +256,21 @@
             }
         }
 
-        function startTimer() {
+        async function startTimer() {
             if (!isRunning) {
                 const minutesInput = document.getElementById('minutes');
                 const checkpointInput = document.getElementById('checkpoint');
                 const minutes = parseInt(minutesInput.value) || 0;
                 checkpointInterval = parseInt(checkpointInput.value) || 0;
+
+                // Initialize audio context on user interaction (required for mobile)
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                // Resume audio context if suspended
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
 
                 if (timeRemaining === 0) {
                     timeRemaining = minutes * 60;
