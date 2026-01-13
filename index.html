@@ -90,12 +90,32 @@
             margin-bottom: 20px;
         }
 
+        .time-inputs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .time-input-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .time-input-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: normal;
+        }
+
         input[type="number"] {
-            padding: 12px 20px;
+            padding: 12px 15px;
             font-size: 24px;
             border: 2px solid #667eea;
             border-radius: 10px;
-            width: 150px;
+            width: 80px;
             text-align: center;
         }
 
@@ -194,14 +214,40 @@
     <div class="container">
         <h1>Timer App</h1>
         <div class="input-group">
-            <label for="minutes">Enter Minutes:</label>
-            <input type="number" id="minutes" min="0" value="5" placeholder="Enter minutes">
+            <label>Timer Duration:</label>
+            <div class="time-inputs">
+                <div class="time-input-wrapper">
+                    <span class="time-input-label">Hours</span>
+                    <input type="number" id="hours" min="0" max="23" value="0">
+                </div>
+                <div class="time-input-wrapper">
+                    <span class="time-input-label">Minutes</span>
+                    <input type="number" id="minutes" min="0" max="59" value="5">
+                </div>
+                <div class="time-input-wrapper">
+                    <span class="time-input-label">Seconds</span>
+                    <input type="number" id="seconds" min="0" max="59" value="0">
+                </div>
+            </div>
         </div>
         <div class="input-group">
-            <label for="checkpoint">Checkpoint Every (minutes):</label>
-            <input type="number" id="checkpoint" min="0" value="1" placeholder="0 = disabled">
+            <label>Checkpoint Every:</label>
+            <div class="time-inputs">
+                <div class="time-input-wrapper">
+                    <span class="time-input-label">Hours</span>
+                    <input type="number" id="checkpointHours" min="0" max="23" value="0">
+                </div>
+                <div class="time-input-wrapper">
+                    <span class="time-input-label">Minutes</span>
+                    <input type="number" id="checkpointMinutes" min="0" max="59" value="1">
+                </div>
+                <div class="time-input-wrapper">
+                    <span class="time-input-label">Seconds</span>
+                    <input type="number" id="checkpointSeconds" min="0" max="59" value="0">
+                </div>
+            </div>
         </div>
-        <div class="counter-display" id="timer">05:00</div>
+        <div class="counter-display" id="timer">00:05:00</div>
         <div class="button-group">
             <button class="start" id="startBtn" onclick="startTimer()">Start</button>
             <button class="pause" id="pauseBtn" onclick="pauseTimer()" style="display: none;">Pause</button>
@@ -258,10 +304,20 @@
 
         async function startTimer() {
             if (!isRunning) {
+                const hoursInput = document.getElementById('hours');
                 const minutesInput = document.getElementById('minutes');
-                const checkpointInput = document.getElementById('checkpoint');
+                const secondsInput = document.getElementById('seconds');
+                const checkpointHoursInput = document.getElementById('checkpointHours');
+                const checkpointMinutesInput = document.getElementById('checkpointMinutes');
+                const checkpointSecondsInput = document.getElementById('checkpointSeconds');
+
+                const hours = parseInt(hoursInput.value) || 0;
                 const minutes = parseInt(minutesInput.value) || 0;
-                checkpointInterval = parseInt(checkpointInput.value) || 0;
+                const seconds = parseInt(secondsInput.value) || 0;
+
+                const checkpointHours = parseInt(checkpointHoursInput.value) || 0;
+                const checkpointMinutes = parseInt(checkpointMinutesInput.value) || 0;
+                const checkpointSeconds = parseInt(checkpointSecondsInput.value) || 0;
 
                 // Initialize audio context on user interaction (required for mobile)
                 if (!audioContext) {
@@ -273,21 +329,27 @@
                 }
 
                 if (timeRemaining === 0) {
-                    timeRemaining = minutes * 60;
+                    timeRemaining = hours * 3600 + minutes * 60 + seconds;
+                    checkpointInterval = checkpointHours * 3600 + checkpointMinutes * 60 + checkpointSeconds;
+
                     // Set the first checkpoint
                     if (checkpointInterval > 0) {
-                        nextCheckpoint = timeRemaining - (checkpointInterval * 60);
+                        nextCheckpoint = timeRemaining - checkpointInterval;
                     }
                     // Save to history when starting a new timer
-                    saveToHistory(minutes, checkpointInterval);
+                    saveToHistory(hours, minutes, seconds, checkpointHours, checkpointMinutes, checkpointSeconds);
                 }
 
                 if (timeRemaining > 0) {
                     isRunning = true;
                     document.getElementById('startBtn').style.display = 'none';
                     document.getElementById('pauseBtn').style.display = 'inline-block';
+                    hoursInput.disabled = true;
                     minutesInput.disabled = true;
-                    checkpointInput.disabled = true;
+                    secondsInput.disabled = true;
+                    checkpointHoursInput.disabled = true;
+                    checkpointMinutesInput.disabled = true;
+                    checkpointSecondsInput.disabled = true;
 
                     timerInterval = setInterval(() => {
                         timeRemaining--;
@@ -321,19 +383,37 @@
             pauseTimer();
             timeRemaining = 0;
             nextCheckpoint = 0;
+
+            const hoursInput = document.getElementById('hours');
             const minutesInput = document.getElementById('minutes');
-            const checkpointInput = document.getElementById('checkpoint');
+            const secondsInput = document.getElementById('seconds');
+            const checkpointHoursInput = document.getElementById('checkpointHours');
+            const checkpointMinutesInput = document.getElementById('checkpointMinutes');
+            const checkpointSecondsInput = document.getElementById('checkpointSeconds');
+
+            hoursInput.disabled = false;
             minutesInput.disabled = false;
-            checkpointInput.disabled = false;
+            secondsInput.disabled = false;
+            checkpointHoursInput.disabled = false;
+            checkpointMinutesInput.disabled = false;
+            checkpointSecondsInput.disabled = false;
+
+            const hours = parseInt(hoursInput.value) || 0;
             const minutes = parseInt(minutesInput.value) || 0;
-            updateDisplay(minutes);
+            const seconds = parseInt(secondsInput.value) || 0;
+            const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+            updateDisplay(totalSeconds);
         }
 
-        function updateDisplay(minutes = null) {
-            const displayMinutes = minutes !== null ? minutes : Math.floor(timeRemaining / 60);
-            const displaySeconds = minutes !== null ? 0 : timeRemaining % 60;
+        function updateDisplay(totalSeconds = null) {
+            const secondsToDisplay = totalSeconds !== null ? totalSeconds : timeRemaining;
+
+            const displayHours = Math.floor(secondsToDisplay / 3600);
+            const displayMinutes = Math.floor((secondsToDisplay % 3600) / 60);
+            const displaySeconds = secondsToDisplay % 60;
 
             const formattedTime =
+                String(displayHours).padStart(2, '0') + ':' +
                 String(displayMinutes).padStart(2, '0') + ':' +
                 String(displaySeconds).padStart(2, '0');
 
@@ -341,8 +421,9 @@
         }
 
         // Timer history management
-        function saveToHistory(minutes, checkpoint) {
-            if (minutes <= 0) return;
+        function saveToHistory(hours, minutes, seconds, checkpointHours, checkpointMinutes, checkpointSeconds) {
+            const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+            if (totalSeconds <= 0) return;
 
             const history = getHistory();
             const timestamp = new Date().toLocaleString();
@@ -350,14 +431,23 @@
             // Create history entry
             const entry = {
                 id: Date.now(),
+                hours: hours,
                 minutes: minutes,
-                checkpoint: checkpoint,
+                seconds: seconds,
+                checkpointHours: checkpointHours,
+                checkpointMinutes: checkpointMinutes,
+                checkpointSeconds: checkpointSeconds,
                 timestamp: timestamp
             };
 
-            // Check if similar timer already exists (same minutes and checkpoint)
+            // Check if similar timer already exists
             const exists = history.some(item =>
-                item.minutes === minutes && item.checkpoint === checkpoint
+                item.hours === hours &&
+                item.minutes === minutes &&
+                item.seconds === seconds &&
+                item.checkpointHours === checkpointHours &&
+                item.checkpointMinutes === checkpointMinutes &&
+                item.checkpointSeconds === checkpointSeconds
             );
 
             if (!exists) {
@@ -388,14 +478,40 @@
             }
 
             historyList.innerHTML = history.map(item => {
-                const checkpointText = item.checkpoint > 0
-                    ? `Checkpoint: every ${item.checkpoint} min`
+                // Handle old format (minutes/checkpoint) for backward compatibility
+                if (item.minutes !== undefined && item.hours === undefined) {
+                    const checkpointText = item.checkpoint > 0
+                        ? `Checkpoint: every ${item.checkpoint} min`
+                        : 'No checkpoints';
+                    return `
+                        <div class="history-item" onclick="loadFromHistory(${item.id})">
+                            <div class="history-info">
+                                <div class="history-title">${item.minutes} minutes</div>
+                                <div class="history-details">${checkpointText}</div>
+                            </div>
+                            <button class="delete-btn" onclick="deleteHistory(event, ${item.id})">✕</button>
+                        </div>
+                    `;
+                }
+
+                // New format with hours, minutes, seconds
+                const h = item.hours || 0;
+                const m = item.minutes || 0;
+                const s = item.seconds || 0;
+                const ch = item.checkpointHours || 0;
+                const cm = item.checkpointMinutes || 0;
+                const cs = item.checkpointSeconds || 0;
+
+                const timeText = `${h}h ${m}m ${s}s`;
+                const checkpointTotalSeconds = ch * 3600 + cm * 60 + cs;
+                const checkpointText = checkpointTotalSeconds > 0
+                    ? `Checkpoint: every ${ch}h ${cm}m ${cs}s`
                     : 'No checkpoints';
 
                 return `
                     <div class="history-item" onclick="loadFromHistory(${item.id})">
                         <div class="history-info">
-                            <div class="history-title">${item.minutes} minutes</div>
+                            <div class="history-title">${timeText}</div>
                             <div class="history-details">${checkpointText}</div>
                         </div>
                         <button class="delete-btn" onclick="deleteHistory(event, ${item.id})">✕</button>
@@ -414,16 +530,35 @@
                     pauseTimer();
                 }
 
-                // Load values
-                document.getElementById('minutes').value = item.minutes;
-                document.getElementById('checkpoint').value = item.checkpoint;
+                // Handle old format for backward compatibility
+                if (item.hours === undefined) {
+                    // Old format - convert minutes to new format
+                    document.getElementById('hours').value = 0;
+                    document.getElementById('minutes').value = item.minutes || 0;
+                    document.getElementById('seconds').value = 0;
+                    document.getElementById('checkpointHours').value = 0;
+                    document.getElementById('checkpointMinutes').value = item.checkpoint || 0;
+                    document.getElementById('checkpointSeconds').value = 0;
+                } else {
+                    // New format - load all values
+                    document.getElementById('hours').value = item.hours || 0;
+                    document.getElementById('minutes').value = item.minutes || 0;
+                    document.getElementById('seconds').value = item.seconds || 0;
+                    document.getElementById('checkpointHours').value = item.checkpointHours || 0;
+                    document.getElementById('checkpointMinutes').value = item.checkpointMinutes || 0;
+                    document.getElementById('checkpointSeconds').value = item.checkpointSeconds || 0;
+                }
 
                 // Reset state
                 timeRemaining = 0;
                 nextCheckpoint = 0;
 
                 // Update display and start immediately
-                updateDisplay(item.minutes);
+                const hours = parseInt(document.getElementById('hours').value) || 0;
+                const minutes = parseInt(document.getElementById('minutes').value) || 0;
+                const seconds = parseInt(document.getElementById('seconds').value) || 0;
+                const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+                updateDisplay(totalSeconds);
                 startTimer();
             }
         }
@@ -438,8 +573,11 @@
         }
 
         window.onload = function() {
-            const minutesInput = document.getElementById('minutes');
-            updateDisplay(parseInt(minutesInput.value));
+            const hours = parseInt(document.getElementById('hours').value) || 0;
+            const minutes = parseInt(document.getElementById('minutes').value) || 0;
+            const seconds = parseInt(document.getElementById('seconds').value) || 0;
+            const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+            updateDisplay(totalSeconds);
             displayHistory();
         };
     </script>
